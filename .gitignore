@@ -205,3 +205,22 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+
+# SQLite database files (must NEVER be committed - too large, contains data)
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+
+# Backup databases
+*_backup*.db
+polymarket*.db
+
+# Reports and generated outputs
+reports/
+logs/
+*.log
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
