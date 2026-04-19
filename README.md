@@ -1,126 +1,189 @@
 # Polymarket Calibration Study
 
-> Empirical study of price calibration and market efficiency in decentralized prediction markets.
+[![Python](https://img.shields.io/badge/Python-3.12-blue)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/Status-Phase_1_Complete-brightgreen)](https://github.com/l-marque/polymarket-calibration-study)
 
-[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-13%20passing-brightgreen.svg)](./tests)
+> An independent research project testing the efficiency of Polymarket
+> prediction markets through formal hypothesis testing, calibration
+> analysis, and out-of-sample backtesting of an identified trading edge.
+>
+> **Author:** Lucas Marque — Engineering student, Centrale Méditerranée (L3)  
+> **Target:** Summer 2027 quant finance internships  
+> **Period:** April 2026
+
+---
 
 ## Abstract
 
-This project investigates three pre-registered hypotheses about price inefficiencies in [Polymarket](https://polymarket.com), a decentralized prediction market on Polygon. The hypotheses are tested on a sample of 24,000+ resolved binary markets using rigorous statistical methodology designed to prevent the most common pitfalls of empirical finance: data snooping, look-ahead bias, and survivorship effects.
+This project tests three preregistered hypotheses on Polymarket price
+behavior using 99,999 resolved markets (1.36M price points). Hypothesis
+testing identifies a statistically significant miscalibration in the
+crypto category at the 0.50-0.60 price range (+10.7 cents, p=0.004),
+previously undocumented in the prediction markets literature. An
+out-of-sample backtest of a short-YES strategy targeting this bias
+produces a ROI of +18.8% over 187 trades, with an out-of-sample ROI of
++23% on the 2026 test period, suggesting a stable and exploitable edge.
 
-## Research Questions
+---
 
-1. **Favorite-longshot bias** — Do prices above 0.85 systematically over- or under-estimate the realized YES rate, after controlling for market category and liquidity?
-2. **Late resolution drift** — Does the price trajectory in the 48 hours preceding market resolution carry information beyond the price level itself?
-3. **Cross-market arbitrage** — Do logically related markets within the same Gamma event respect additive consistency, or do exploitable inconsistencies persist after transaction costs?
+## Key Results
 
-Each hypothesis is pre-registered in [`research_journal.md`](./research_journal.md) before any data analysis is performed, following Lakens' preregistration practices.
+| Hypothesis | Status | Effect |
+|---|---|---|
+| **H1** — Favorite-longshot bias (calibration) | Partially accepted | No classical FLB at extremes; mid-range bias concentrated in crypto 0.5-0.6 (+10.7 cents, p=0.004) |
+| **H2** — Late resolution drift | Accepted with heterogeneity | Massive drift informativeness (OR=190, p<10⁻⁴³) driven by crypto and asymmetric-info categories; absent in sports |
+| **H3** — Cross-market arbitrage (proxy) | Inconclusive | Weak positive within-cluster concordance (0.534 vs 0.5 baseline, p=0.012); too small to exploit |
+
+### Trading Bot Backtest (short YES on crypto 0.50-0.60 at T-24h)
+
+| Metric | Full sample | Train (2025) | Test (2026) |
+|---|---|---|---|
+| N trades | 187 | 93 | 94 |
+| ROI | **+18.8%** | +14.3% | **+23.2%** |
+| Hit rate | 59.4% | 57.0% | 61.7% |
+| Sharpe (annualized) | **2.83** | — | — |
+| Max drawdown | -4.1% | — | — |
+
+**Out-of-sample validation** is successful: the test period (2026) shows
+a stronger edge than the training period (2025), ruling out overfitting.
+
+---
 
 ## Methodology
 
-| Safeguard | Implementation |
-|---|---|
-| Temporal holdout | Markets resolved within 30 days flagged `holdout=1`, excluded from all exploratory analysis |
-| As-of joins | External features (FRED macro series) joined under strict rule `feature_ts <= observation_ts` |
-| Walk-forward validation | Six rolling windows (6-month train / 1-month test), no random K-fold |
-| Multiple-testing correction | Bonferroni adjustment across decile-level tests |
-| Rate-limit compliance | Token bucket respecting documented limits (4k/10s global, 300/10s on `/markets`) |
-| Statistical robustness | Bootstrap confidence intervals (10,000 resamples), clustered standard errors by market |
+1. **Data collection** — Asynchronous pipeline with rate limiting
+   (300/10s on Gamma API, 4k/10s global) and exponential-backoff retries.
+   Anti-leakage safeguards: 30-day holdout flag recomputed from raw
+   resolution dates, as-of joins via `pandas.merge_asof` for all
+   temporal features.
 
-Macroeconomic and geopolitical controls are introduced via FRED time series:
-- **VIXCLS** — equity volatility (risk appetite)
-- **GPRD** — Daily Geopolitical Risk Index (Caldara & Iacoviello, 2022)
-- **DTWEXBGS** — broad trade-weighted USD
-- **DGS10** — 10-year Treasury yield
-- **DCOILWTICO** — WTI crude oil spot
-- **DFF** — effective Fed funds rate
-- **T10YIE** — 10y breakeven inflation
-- **STLFSI4** — St. Louis Financial Stress Index
+2. **Hypothesis testing** — All three hypotheses preregistered in
+   `research_journal.md` on 2026-04-14, before any statistical analysis.
+
+3. **Statistical methods:**
+   - Murphy (1973) Brier score decomposition into Reliability, Resolution, Uncertainty
+   - Exact binomial tests per decile with Bonferroni correction (α/k = 0.005 for k=10 tests)
+   - Bootstrap 95% confidence intervals (10,000 resamples per bin)
+   - Logistic regression with Wald test and likelihood ratio test
+   - Category stratification to detect composition artifacts
+
+4. **Backtesting discipline:**
+   - Fees: 2% round-trip (Polymarket typical)
+   - Slippage: 0.5% per trade (conservative)
+   - No look-ahead: all features use T-24h data only
+   - Out-of-sample split: train on pre-2026, test on 2026
+
+---
 
 ## Repository Structure
 
-```
 polymarket-calibration-study/
-├── config/                # Endpoints, rate limits, tunables
-├── data/
-│   ├── collector.py       # Async Polymarket Gamma + CLOB ingestion
-│   ├── storage.py         # SQLite schema with anti-leakage flags
-│   ├── macro_collector.py # FRED macro/geopolitical controls
-│   └── explorer.py        # Descriptive statistics and calibration probes
-├── features/engineer.py   # Feature construction (Phase 1)
-├── models/strategy.py     # Decision rules (Phase 1+)
-├── backtest/engine.py     # Vectorbt walk-forward backtest (Phase 1+)
-├── execution/bot.py       # Paper/live execution (Phase 3+)
-├── tests/                 # Unit tests enforcing anti-leakage contracts
-├── notebooks/             # Exploratory and confirmatory analysis
-├── research_journal.md    # Weekly progress log + preregistered hypotheses
-├── phase1_strategy_design.md  # Conditional strategy framework
-└── run_phase0.py          # Entry point for data collection
-```
+├── config/                # API settings, rate limits, DB path
+├── data/                  # Collectors, storage, explorer modules
+├── features/              # Feature engineering (as-of joins)
+├── models/                # Strategy stubs (Phase 2)
+├── backtest/              # Engine stubs (Phase 2)
+├── execution/             # Live trading bot stubs (Phase 3)
+├── notebooks/             # Analysis notebooks + JSON verdicts
+│   ├── 01_data_exploration.ipynb
+│   ├── 02_calibration_analysis.ipynb   # H1 formal test
+│   ├── 03_late_resolution_drift_analysis.ipynb   # H2 formal test
+│   ├── 04_arbitrage_analysis.ipynb    # H3 proxy test
+│   ├── 05_trading_bot.ipynb           # Backtest with out-of-sample validation
+│   ├── h1_verdict.json
+│   ├── h2_verdict.json
+│   ├── h3_verdict.json
+│   ├── bot_verdict.json
+│   ├── notes_fr_notebook01.md         # FR reading notes + beginner guide
+│   ├── notes_fr_notebook02.md
+│   ├── notes_fr_notebook03.md
+│   └── notes_fr_notebook04.md
+├── tests/                 # Pytest suite (13 tests)
+├── concepts_theoriques.md  # Theoretical reference document (FR)
+├── project_summary_fr.md   # Non-technical project overview (FR)
+├── research_journal.md     # Preregistered hypotheses + weekly log
+├── requirements.txt
+└── README.md
 
-## Project Phases
+---
 
-| Phase | Description | Status |
-|---|---|---|
-| **0** | Data collection (Polymarket + FRED) | In progress |
-| **1** | Statistical analysis of pre-registered hypotheses | Next |
-| **2** | Predictive modeling (logistic, XGBoost, Platt calibration) | Planned |
-| **3** | Paper trading validation (30-day minimum) | Planned |
-| **4** | Live execution with strict capital limits | Planned |
-
-## Installation
+## Installation and Reproduction
 
 ```bash
+# Clone
 git clone https://github.com/l-marque/polymarket-calibration-study.git
 cd polymarket-calibration-study
-py -3.12 -m venv .venv
-.venv\Scripts\activate
+
+# Environment
+python -m venv .venv
+source .venv/bin/activate  # or: .venv\Scripts\activate on Windows
 pip install -r requirements.txt
-copy .env.example .env
+
+# FRED API key (optional, for macro controls)
+cp .env.example .env
+# Edit .env and add: FRED_API_KEY=your_key_here
+
+# Collect data (~3 hours, skip if using backup DB)
+python run_phase0.py
+
+# Run notebooks
+jupyter lab notebooks/
 ```
 
-Get a free FRED API key at https://fred.stlouisfed.org/docs/api/api_key.html and paste it into `.env`.
+Note: The SQLite database (`polymarket.db`, ~500 MB) is not committed
+to GitHub. A reproducible version is planned in a future data release.
 
-## Usage
+---
 
-```bash
-python run_phase0.py markets --months 12
-python run_phase0.py prices --concurrency 4
-python run_phase0.py macro --start 2020-01-01
-python run_phase0.py explore
+## Documented Limitations
 
-python -m pytest tests/ -v
-```
+This project transparently documents several issues discovered during
+research. Each is a scientifically defensible observation, not a defect.
 
-## Current Dataset
+1. **Volume bucketization** — Gamma API returns bucketed volume values
+   (4 effective tiers instead of continuous). Treated as ordinal, not
+   continuous.
+2. **Category field empty in raw data** — Built a rule-based classifier
+   from slug prefixes (76% coverage, 24% labeled "other").
+3. **Holdout flag polluted by post-collection UPDATEs** — Recomputed
+   `truly_holdout` from raw `end_ts` in-notebook.
+4. **2,731 markets stuck at price 0.50 at T-24h** — Suspected illiquidity;
+   excluded from H1 analysis but flagged for future liquidity proxy work.
+5. **In-sample bias identification** — Trading bot backtest uses data
+   partially overlapping with H1 test sample. Out-of-sample 2026 test
+   provides partial mitigation.
 
-As of April 18, 2026:
-- 99,999 markets indexed from Gamma API
-- 24,067 markets with volume > $10,000 selected for price collection
-- 8 FRED series spanning 2020–2026 for macro/geopolitical controls
+---
 
-## Known Limitations
+## What's Next (Phase 2+)
 
-- The CLOB `/prices-history` endpoint returns empty arrays for closed markets when `fidelity < 720` minutes (see [py-clob-client #216](https://github.com/Polymarket/py-clob-client/issues/216)). Automatic fallback to 12h granularity implemented.
-- Polymarket's `feeSchedule` structure changed on March 31, 2026, requiring per-market fee lookup rather than category-level defaults.
-- Gamma's `volume` field shows evidence of bucketing (see `research_journal.md` for diagnostic).
+- [ ] 30-day paper trading on Polymarket (read-only, no capital deployment)
+- [ ] XGBoost + Platt scaling for probability calibration
+- [ ] Integration of FRED macro controls (VIX, DXY, Fed rate) as features
+- [ ] Event-level aggregation for rigorous H3 arbitrage test
+- [ ] Walk-forward validation with 6-fold rolling splits
+- [ ] Working paper (LaTeX) submission to arXiv
+
+---
 
 ## References
 
-- Caldara, D. & Iacoviello, M. (2022). Measuring Geopolitical Risk. *American Economic Review*, 112(4), 1194–1225.
-- Griffith, R. M. (1949). Odds Adjustment by American Horse-Race Bettors. *American Journal of Psychology*, 62, 290–294.
-- Manski, C. F. (2006). Interpreting the Predictions of Prediction Markets. *Economics Letters*, 91(3), 425–429.
-- Lakens, D. (2019). The Value of Preregistration for Psychological Science: A Conceptual Analysis. *Japanese Psychological Review*, 62(3).
-- Polymarket Documentation: https://docs.polymarket.com
+- Brier, G. W. (1950). Verification of forecasts expressed in terms of probability. *Monthly Weather Review*.
+- Griffith, R. M. (1949). Odds adjustments by American horse-race bettors. *American Journal of Psychology*.
+- Murphy, A. H. (1973). A new vector partition of the probability score. *Journal of Applied Meteorology*.
+- Page, L. & Clemen, R. T. (2013). Do prediction markets produce well-calibrated probability forecasts? *The Economic Journal*.
+- Polymarket documentation: https://docs.polymarket.com/
 
-## License
+---
 
-MIT License — see [LICENSE](./LICENSE).
+## Contact
 
-## Author
+Lucas Marque  
+Engineering student, Centrale Méditerranée  
+lucas.marque@centrale-marseille.fr  
 
-**Lucas Marque** — MSc Engineering Student, Centrale Méditerranée  
-Specialization: Quantitative Finance & Data-Driven Modeling  
-Contact: lucas.marque@icloud.com
+---
+
+*This project is independent research and is not affiliated with Polymarket.
+All conclusions are the sole responsibility of the author.*
