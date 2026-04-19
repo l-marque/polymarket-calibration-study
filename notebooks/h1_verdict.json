@@ -1,0 +1,35 @@
+{
+  "hypothesis": "H1 \u2014 favorite-longshot bias (calibration miscalibration)",
+  "pooled_n": 8306,
+  "pooled_brier": 0.1414303029436552,
+  "pooled_reliability": 0.0015474844324467579,
+  "pooled_resolution": 0.09040566234031339,
+  "pooled_significant_bins": 4,
+  "status": "partially_accepted",
+  "significant_effects": [
+    {
+      "category": "crypto",
+      "bin": "0.5-0.6",
+      "n": 187,
+      "miscalibration": 0.1068,
+      "direction": "market_overestimates_yes",
+      "suggested_trade": "sell_yes",
+      "raw_edge_cents": 10.68
+    },
+    {
+      "category": "other",
+      "bin": "0.2-0.3",
+      "n": 371,
+      "miscalibration": -0.11,
+      "direction": "market_underestimates_yes",
+      "suggested_trade": "buy_yes",
+      "raw_edge_cents": 11.0
+    }
+  ],
+  "notes": [
+    "Sports showed 0/10 significant bins despite N=2,416, contradicting the pooled result",
+    "Pooled mid-range miscalibration is partly an artifact of category composition",
+    "Extremes (0.0-0.1 and 0.9-1.0) are well-calibrated in all categories \u2014 no classical FLB",
+    "All edges need walk-forward validation before trading"
+  ]
+}
