@@ -224,3 +224,7 @@ logs/
 
 # Jupyter notebook checkpoints
 .ipynb_checkpoints/
+
+
+# Local dev scripts
+activate.bat
