@@ -9,7 +9,7 @@
 > analysis, and out-of-sample backtesting of an identified trading edge.
 >
 > **Author:** Lucas Marque — Engineering student, Centrale Méditerranée (L3)  
-> **Target:** Summer 2027 quant finance internships  
+> **Target:** Summer 2027 internships  
 > **Period:** April 2026
 
 ---
