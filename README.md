@@ -165,14 +165,13 @@ research. Each is a scientifically defensible observation, not a defect.
 - [ ] Walk-forward validation with 6-fold rolling splits
 - [ ] Working paper (LaTeX) submission to arXiv
 
----
 
-## References
+## Further Reading
 
-- Brier, G. W. (1950). Verification of forecasts expressed in terms of probability. *Monthly Weather Review*.
-- Griffith, R. M. (1949). Odds adjustments by American horse-race bettors. *American Journal of Psychology*.
-- Murphy, A. H. (1973). A new vector partition of the probability score. *Journal of Applied Meteorology*.
-- Page, L. & Clemen, R. T. (2013). Do prediction markets produce well-calibrated probability forecasts? *The Economic Journal*.
+Theoretical foundations (Brier score decomposition, favorite-longshot bias,
+binomial testing) are explained in `concepts_theoriques.md`. A working
+paper with full references is in preparation.
+
 - Polymarket documentation: https://docs.polymarket.com/
 
 ---

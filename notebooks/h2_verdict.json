@@ -1,0 +1,71 @@
+{
+  "hypothesis": "H2 \u2014 late resolution drift informativeness",
+  "status": "accepted_with_heterogeneity",
+  "pooled_n": 8160,
+  "pooled_yes_rate": 0.3686274509803922,
+  "baseline_pseudo_r2": 0.3143576718892471,
+  "full_pseudo_r2": 0.33673031436777623,
+  "pseudo_r2_gain": 0.022372642478529103,
+  "drift_coefficient": 5.251376689985579,
+  "drift_se": 0.37537382124685204,
+  "drift_p_value": 1.8010593573594134e-44,
+  "drift_odds_ratio": 190.82879980267825,
+  "drift_or_ci_95": [
+    91.43766832033761,
+    398.25633683652313
+  ],
+  "likelihood_ratio_stat": 240.33070805822535,
+  "likelihood_ratio_pvalue": 0.0,
+  "per_category": [
+    {
+      "category": "crypto",
+      "n": 1132,
+      "beta_drift": 5.584523827360715,
+      "p_drift": 1.3749989340322906e-18,
+      "or_drift": 266.27346041078476,
+      "significant": true
+    },
+    {
+      "category": "sports",
+      "n": 2407,
+      "beta_drift": 1.4390153786199784,
+      "p_drift": 0.12740837278888673,
+      "or_drift": 4.216542074923777,
+      "significant": false
+    },
+    {
+      "category": "politics",
+      "n": 314,
+      "beta_drift": 2.9245091470469986,
+      "p_drift": 0.13915722887853968,
+      "or_drift": 18.625081629481997,
+      "significant": false
+    },
+    {
+      "category": "other",
+      "n": 4062,
+      "beta_drift": 6.742725568774516,
+      "p_drift": 6.813867417203232e-26,
+      "or_drift": 847.8685133641391,
+      "significant": true
+    }
+  ],
+  "interpretation": [
+    "Pooled: drift is massively significant (p<1e-43, OR=190)",
+    "Stratified: effect concentrated in CRYPTO (OR=266, p<1e-18) and OTHER (OR=848, p<1e-26)",
+    "SPORTS shows no significant drift effect despite N=2407 \u2014 consistent with efficient sports markets",
+    "POLITICS underpowered (N=314), inconclusive",
+    "Pattern suggests drift reflects information arrival in asymmetric-info markets, not generic momentum"
+  ],
+  "caveats_for_trading": [
+    "Observed drift is already priced into the T-24h price level",
+    "Exploitation requires predicting drift continuation before completion",
+    "Transaction costs (2% Polymarket) must be covered by edge estimation"
+  ],
+  "trading_implications": [
+    "Targeted strategy on crypto + other categories has potential edge",
+    "Avoid sports markets: drift is not informative there",
+    "Politics requires larger sample before conclusion",
+    "Causality remains ambiguous: exploit would require predicting incipient drift"
+  ]
+}

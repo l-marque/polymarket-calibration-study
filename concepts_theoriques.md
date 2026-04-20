@@ -284,3 +284,74 @@ pour que le trade soit rentable après coûts.
 - [ ] Metrics de classification : precision, recall, AUC-ROC
 - [ ] Sharpe ratio, Sortino, max drawdown (backtest)
 - [ ] Cross-sectional vs time-series regression
+
+
+### Régression logistique
+
+**Problème résolu :** tester l'effet de plusieurs variables simultanément
+sur une issue binaire (0/1), en isolant l'effet propre de chaque variable.
+
+**Formule :**
+
+$$P(Y=1 | X_1, ..., X_k) = \frac{1}{1 + e^{-(\beta_0 + \beta_1 X_1 + ... + \beta_k X_k)}}$$
+
+Les coefficients $\beta_i$ mesurent l'effet de chaque variable **après
+contrôle** des autres.
+
+**Exemple :** on veut savoir si la dérive de prix prédit l'outcome YES,
+au-delà du niveau de prix lui-même. On régresse :
+
+$$P(Y=1) = \sigma(\beta_0 + \beta_1 \cdot \text{prix} + \beta_2 \cdot \text{dérive})$$
+
+Test H2 = tester si $\beta_2 \neq 0$.
+
+**Différence avec test binomial :**
+- Test binomial : 1 variable, 1 hypothèse par test
+- Régression logistique : plusieurs variables, chaque coefficient est testé
+  séparément en contrôlant les autres
+
+**Analogie du café et de l'infarctus :**
+Si les buveurs de café ont plus d'infarctus, est-ce le café ou le tabac
+(confondant) ? Une régression logistique avec café ET tabac comme prédicteurs
+permet d'isoler l'effet propre du café après contrôle du tabac.
+
+---
+
+### Odds et odds ratio
+
+**Odds (cote) :** transformation de la probabilité qui va de 0 à l'infini
+au lieu de 0 à 1.
+
+$$\text{odds}(p) = \frac{p}{1-p}$$
+
+**Exemples :**
+- p = 0.5 → odds = 1 (50/50)
+- p = 0.75 → odds = 3 (3 contre 1)
+- p = 0.10 → odds = 0.111 (1 contre 9)
+
+**Pourquoi les odds sont utiles :** elles ne sont pas bornées par 1. On peut
+leur appliquer des transformations multiplicatives sans risque de dépasser
+les probabilités valides.
+
+**Odds ratio (OR) :** $OR = e^\beta$ où $\beta$ est le coefficient logit.
+
+**Interprétation :** facteur multiplicatif des odds quand la variable augmente
+de 1 unité.
+
+- OR = 1 : aucun effet
+- OR = 2 : l'odds double (variable augmente de 1)
+- OR = 0.5 : l'odds est divisée par 2 (effet protecteur)
+
+**Règle de significativité :** si l'intervalle de confiance à 95% de l'OR
+ne contient pas 1, l'effet est significatif au seuil α = 0.05.
+
+**Exemple numérique pour H2 :** si on trouve $\beta_2 = 1.5$, alors
+$OR = e^{1.5} = 4.48$. Pour une variation réaliste de dérive de +0.10,
+l'effet multiplicatif sur l'odds est $e^{1.5 \times 0.10} = 1.16$ (soit +16%).
+
+**Pourquoi les statisticiens adorent l'OR :**
+1. Interprétation multiplicative intuitive
+2. Symétrie : OR=2 ↔ OR=0.5 (inverse)
+3. Indépendant du baseline (contrairement aux différences absolues)
+
+---

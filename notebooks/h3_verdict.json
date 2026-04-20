@@ -1,0 +1,62 @@
+{
+  "hypothesis": "H3 \u2014 cross-market arbitrage (proxy: within-cluster co-movement)",
+  "test_type": "one-sample t-test on sign concordance vs H0=0.5",
+  "n_clusters": 171,
+  "n_markets": 8050,
+  "mean_sign_concordance": 0.5335149671556488,
+  "median_sign_concordance": 0.5038659793814433,
+  "std_sign_concordance": 0.16567029801810515,
+  "t_statistic": 2.550895729892808,
+  "p_value": 0.011694773427627012,
+  "status": "accepted",
+  "by_category": {
+    "crypto": {
+      "mean": 0.5460316806604063,
+      "median": 0.52,
+      "std": 0.2061207000657103,
+      "count": 39
+    },
+    "esports": {
+      "mean": 0.48117413298011846,
+      "median": 0.48717948717948717,
+      "std": 0.043754290477210515,
+      "count": 9
+    },
+    "other": {
+      "mean": 0.5099038177973066,
+      "median": 0.5121951219512195,
+      "std": 0.04703570323767255,
+      "count": 47
+    },
+    "politics": {
+      "mean": 0.5154720318585865,
+      "median": 0.4725274725274725,
+      "std": 0.16762355447371705,
+      "count": 21
+    },
+    "sports": {
+      "mean": 0.5547197788508996,
+      "median": 0.5010526315789474,
+      "std": 0.1989600199492597,
+      "count": 38
+    },
+    "weather": {
+      "mean": 0.6666666666666667,
+      "median": 0.6,
+      "std": 0.3197221015541813,
+      "count": 5
+    }
+  },
+  "interpretation": [
+    "Mean sign concordance = 0.5335",
+    "Under H0 (independent markets), expected concordance = 0.50",
+    "Deviation from 0.50 is significant (p=1.17e-02)",
+    "Interpretation: markets within the same cluster (same category + same week) co-move more than chance, consistent with shared information."
+  ],
+  "caveats": [
+    "Proxy test: does not directly measure arbitrage opportunity (price coherence)",
+    "Clusters defined by category + resolution week; true underlying events may differ",
+    "Sign concordance captures direction only, not magnitude of drift alignment",
+    "A cluster may group unrelated markets that happen to share category and week"
+  ]
+}

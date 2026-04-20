@@ -491,3 +491,270 @@ Synthèse des résultats et roadmap pour les notebooks 02/03/04.
 
 ---
 
+# 🎓 Comprendre le notebook 01 pour un débutant complet
+
+*Si tu lis ce document sans rien connaître à la finance ni aux statistiques,
+commence par ici. Tout est expliqué avec des mots simples et des exemples.*
+
+## Le contexte : c'est quoi Polymarket ?
+
+Imagine un site internet où tu peux parier sur tout ce qui va se passer
+dans le monde. Par exemple :
+
+- "Est-ce que Marseille va gagner la Ligue 1 cette saison ?"
+- "Est-ce que le prix du Bitcoin va dépasser 150 000 $ avant fin 2026 ?"
+- "Est-ce que Trump va faire une visite en Russie avant juin ?"
+
+Sur Polymarket, chaque question a deux réponses possibles : **OUI** (YES)
+ou **NON** (NO). Tu peux acheter des "parts OUI" ou des "parts NON".
+
+**Le mécanisme des prix :**
+- Chaque part coûte entre 0 centime et 1 dollar
+- Si tu achètes une part OUI à 30 centimes et que la réponse est finalement OUI,
+  tu gagnes 1 dollar (donc un profit de 70 centimes)
+- Si la réponse est NON, tu perds tes 30 centimes
+
+**Le prix reflète une probabilité :**
+Si beaucoup de gens achètent des parts OUI, leur prix monte. Si beaucoup
+achètent NON, le prix OUI baisse. Donc **le prix d'une part OUI représente
+ce que le marché estime être la probabilité que la réponse soit OUI**.
+
+- Prix OUI à 0.80 = le marché pense qu'il y a 80% de chances que ce soit OUI
+- Prix OUI à 0.15 = le marché pense qu'il y a 15% de chances
+
+Ces prix ressemblent aux cotes des bookmakers sportifs, sauf qu'ici ce sont
+les parieurs eux-mêmes qui fixent les prix par leurs achats et leurs ventes.
+
+---
+
+## La question centrale du projet
+
+**Est-ce que les prix Polymarket sont "bien calibrés" ?**
+
+Traduit simplement : quand le marché dit "80% de chances", est-ce que ça
+arrive vraiment 80% du temps ? Ou y a-t-il un biais systématique ?
+
+### Pourquoi c'est intéressant
+
+Si on trouve un biais systématique, on peut le **transformer en stratégie
+rentable**. Exemple imaginaire :
+
+*"Quand le marché dit 80%, ça arrive en fait 85% du temps."*
+
+Alors acheter des parts OUI à 0.80 serait rentable en moyenne, parce que
+la vraie probabilité est 0.85 et pas 0.80. On gagnerait 5 centimes d'espérance
+par trade.
+
+Ce genre de biais existe dans la littérature académique sur les paris
+hippiques (le "favorite-longshot bias" découvert en 1949 par Griffith).
+On veut voir s'il existe sur Polymarket.
+
+---
+
+## Ce qu'on a fait dans le notebook 01 : raconté comme une enquête
+
+### Étape 1 : collecter les données
+
+J'ai utilisé l'API publique de Polymarket (un accès programmatique gratuit
+aux données) pour télécharger les informations de **99 999 marchés qui se
+sont terminés**. Pour chacun, j'ai récupéré :
+
+- La question posée ("Will Bitcoin exceed $110k on September 26?")
+- La catégorie (sport, crypto, politique...)
+- La date d'ouverture et de fermeture
+- Le résultat final (OUI ou NON)
+- L'historique des prix (le prix à chaque moment, toutes les 12 heures)
+
+Total récupéré : **1.36 million de points de prix** à travers 46 930 séries
+temporelles. Ça représente plusieurs heures de téléchargement.
+
+### Étape 2 : nettoyer les données
+
+Les données brutes ne sont jamais utilisables directement. J'ai découvert :
+
+**Problème A** : l'API m'a donné 99 999 marchés alors que je demandais seulement
+les 12 derniers mois. Cause : un bug de pagination côté API. J'ai décidé de
+garder tous les marchés, ça me fait plus de données = meilleure statistique.
+
+**Problème B** : Polymarket a un "drapeau holdout" qui marque les marchés
+résolus très récemment (moins de 30 jours), qu'on ne doit PAS utiliser pour
+nos tests (sinon on risque de "tricher" en ayant vu l'issue).
+
+Mais en faisant des filtres SQL pour ne garder que les gros marchés, j'ai
+**accidentellement écrasé ce drapeau**. Résultat : 75 000 marchés étaient
+marqués "holdout" alors qu'ils ne devaient pas l'être.
+
+J'ai reconstruit un drapeau propre à partir des dates de résolution. Leçon :
+ne jamais faire confiance à un drapeau calculé, toujours le recalculer à
+partir des données brutes.
+
+**Problème C** : la colonne "catégorie" était **vide pour tous les marchés**
+(l'API a changé son format). J'ai donc construit un petit classifieur basé
+sur l'URL de chaque marché. Par exemple :
+- `btc-above-100k-2025` → catégorie "crypto"
+- `nba-lakers-vs-celtics` → catégorie "sports"
+- `will-temperature-exceed-80f` → catégorie "weather"
+
+Couverture obtenue : 76% des marchés correctement catégorisés.
+
+### Étape 3 : explorer les données avec des graphiques
+
+Maintenant qu'on a un dataset propre de **67 081 marchés**, on regarde
+à quoi ça ressemble.
+
+**Découverte 1 : les issues sont déséquilibrées**
+
+Sur les 67 081 marchés, seulement **41% se résolvent OUI**. Les 59% restants
+se résolvent NON. Pourquoi ? Deux explications plausibles :
+
+- **Biais de formulation** : les questions sont souvent formulées "Est-ce que
+  X va arriver ?" où la réponse par défaut est NON.
+- **Biais de catégorie** : certaines catégories sont très déséquilibrées.
+  Par exemple "weather" (météo) est à 85% NON parce que les questions
+  demandent des valeurs précises (ex: température entre 76 et 77°F) qui
+  arrivent rarement.
+
+**Conséquence importante** : on ne peut pas naïvement dire "un marché à 50%
+devrait être OUI 50% du temps". Il faut comparer au **taux de base de la
+catégorie**, pas à 50%.
+
+**Découverte 2 : les volumes sont "bucketisés"**
+
+Polymarket affiche pour chaque marché son volume total en dollars (combien
+d'argent a été échangé). Normalement cette valeur devrait être continue
+(n'importe quel nombre entre 0 et 10 millions).
+
+**Mais** : en regardant les données, j'ai remarqué que **tous les volumes
+tombent dans environ 4 "cases" fixes** :
+- Moins de 100$
+- Entre 1 000$ et 9 999$
+- Entre 10 000$ et 99 999$
+- Plus de 100 000$
+
+C'est comme si Polymarket arrondissait tous les volumes à ces paliers. On ne
+peut donc pas utiliser le volume comme une valeur précise, seulement comme
+une indication grossière.
+
+**Découverte 3 : les marchés sont très courts**
+
+29% des marchés durent moins de **24 heures** (questions type "Bitcoin > X
+aujourd'hui"). 75% durent moins d'une semaine. Les marchés longue durée
+(> 1 mois) sont rares.
+
+Implication : pour tester l'hypothèse H2 (dérive dans les 48h avant
+résolution), on devra exclure les 29% de marchés trop courts.
+
+### Étape 4 : le cœur de l'analyse — les prix à T-24h
+
+Pour chaque marché, j'ai extrait le prix exactement **24 heures avant
+la fermeture**. C'est ce prix qu'on va comparer au résultat réel.
+
+**Technique utilisée : "merge as-of"**
+
+Imagine que tu as 11 340 marchés et 1.36 million de points de prix. Pour
+chaque marché, tu veux trouver le point de prix le plus récent dont le
+timestamp est antérieur à (fermeture - 24h). C'est comme chercher une
+aiguille dans une botte de foin, pour chaque marché.
+
+Pandas (une bibliothèque Python) a une fonction magique pour ça :
+`merge_asof`. Elle fait ce travail en **5 secondes au lieu de 3 minutes**
+avec une boucle naïve.
+
+**Pourquoi "as-of" et pas "as-at"** : "as-of" signifie "à la date la plus
+récente jusqu'à cette date". On ne doit **jamais** prendre un prix futur
+par rapport au moment de la décision, sinon on "triche" (on utilise de
+l'information qu'on n'aurait pas eue en vrai).
+
+En finance, utiliser des données du futur pour prédire le passé s'appelle
+le "look-ahead bias" et c'est l'erreur numéro 1 des backtests amateur.
+
+### Étape 5 : premiers résultats
+
+Sur les 11 340 marchés avec un prix à T-24h valide :
+
+**Corrélation entre prix et résultat : 0.54**
+
+Traduit : quand le marché prédit 80%, c'est plus souvent OUI que quand il
+prédit 20%. Donc le marché n'est pas aveugle, il a une certaine capacité
+prédictive. Mais 0.54 n'est pas 1, donc les prédictions sont imparfaites.
+
+**Brier score : 0.17**
+
+Le Brier score mesure l'erreur moyenne des prédictions. Plus c'est bas,
+mieux c'est. Pour référence :
+- 0.0 = prédiction parfaite
+- 0.25 = prédiction aléatoire (pile ou face)
+- 0.17 = mieux qu'aléatoire mais pas parfait
+
+Donc oui, le marché a de la valeur prédictive, mais il reste de la place
+pour détecter des biais exploitables.
+
+**Tableau par tranche de prix (la donnée centrale)** :
+
+| Tranche de prix | Nombre de marchés | Taux OUI réel |
+|---|---|---|
+| 0-10% | 2 717 | 2% |
+| 10-20% | 551 | 18% |
+| 20-30% | 766 | 33% |
+| 30-40% | 736 | 41% |
+| 40-50% | 3 762 | 50% |
+| 50-60% | 1 073 | 48% |
+| 60-70% | 465 | 62% |
+| 70-80% | 357 | 71% |
+| 80-90% | 245 | 87% |
+| 90-100% | à venir | à venir |
+
+**Ce qu'on voit** :
+- Dans les cases extrêmes (0-10% et 80-90%), le taux réel est **un peu
+  différent** du prix prédit. Exemple : cases 20-30% = 33% de OUI au lieu
+  de ~25% attendus. Ça semble suggérer que le marché sous-estime les
+  outsiders.
+- Dans les cases du milieu, c'est plus calibré.
+
+**Est-ce un vrai biais ou du bruit ?** C'est exactement la question que le
+notebook 02 va trancher avec des tests statistiques formels.
+
+---
+
+## Ce qu'on n'a PAS fait dans ce notebook
+
+- On n'a pas testé formellement les hypothèses. Tout est en exploration.
+- On n'a pas utilisé de modèle prédictif avancé (machine learning).
+- On n'a pas backtesté de stratégie de trading.
+- On n'a pas touché aux données "holdout" (les 30 derniers jours),
+  réservées pour la validation finale.
+
+Le notebook 02 fait le test formel. Le notebook 03 teste la dérive temporelle.
+Le backtest arrive plus tard.
+
+---
+
+## Vocabulaire clé introduit dans ce notebook
+
+**Prix à T-24h** : le prix d'une part OUI exactement 24 heures avant la
+fermeture du marché. C'est notre "prédiction" que le marché fait.
+
+**Taux de base (base rate)** : la proportion de marchés qui se résolvent OUI
+dans l'ensemble du dataset. Chez nous : 41%.
+
+**Bin / Tranche / Décile** : un intervalle dans lequel on regroupe des
+valeurs. Exemple : "tous les marchés avec un prix entre 0.8 et 0.9".
+
+**Brier score** : mesure d'erreur des prédictions probabilistes. Formule :
+moyenne de (prédiction − réalité)². Parfait = 0, aléatoire = 0.25.
+
+**Holdout** : portion des données qu'on met de côté et qu'on ne regarde
+**jamais** avant la validation finale, pour éviter de biaiser nos choix
+méthodologiques.
+
+**Merge as-of** : fonction Python qui joint deux séries temporelles en
+prenant la valeur la plus récente antérieure ou égale à la date cible.
+Standard pour éviter le look-ahead bias.
+
+**Look-ahead bias** : erreur méthodologique consistant à utiliser dans son
+analyse une information qui n'était pas disponible au moment où la décision
+aurait été prise. Tue la crédibilité de tout backtest.
+
+**Catégorie dérivée** : catégorie calculée par nous à partir de l'URL du
+marché, parce que Polymarket ne la fournit plus directement.
+

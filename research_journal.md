@@ -87,6 +87,29 @@ anti-look-ahead discipline.
 - 764 markets with zero or negative duration
 - Volume field bucketing confirmed visually (CDF shows 4 plateaus)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### Updated TODOs
 - [ ] Fix `DB_PATH` in `config/settings.py` to anchor at project root
 - [ ] Fix `collect_markets` pagination (hit max_pages ceiling)
