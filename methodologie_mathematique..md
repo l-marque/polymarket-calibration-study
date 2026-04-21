@@ -67,13 +67,7 @@ calculée sur la loi binomiale exacte (pas une approximation normale).
 
 Notebook 02. On applique un test binomial exact à chacun des 10 bins de prix. Le choix "exact" plutôt que "chi-square" est délibéré : avec des tailles d'échantillon modérées dans certains bins (N = 187 dans le bin crypto), l'approximation normale du chi-square peut être imprécise, surtout près des bornes (probabilités proches de 0 ou 1).
 
-### Question d'entretien type
 
-**Q : Pourquoi un test binomial exact plutôt qu'un test du chi-deux d'ajustement ?**
-
-R : Le test du chi-deux repose sur l'approximation normale de la binomiale, qui est bonne pour $N$ grand et des probabilités pas trop proches de 0 ou 1. Dans notre projet, plusieurs bins ont des tailles modérées (moins de 200 marchés) et des probabilités parfois proches des extrêmes (bin 0-0.1 avec $\bar{p} \approx 0.05$). Dans ces conditions, l'approximation chi-deux devient imprécise et peut produire des p-values biaisées. Le test binomial exact calcule directement la probabilité sur la vraie loi binomiale, sans approximation. Le coût computationnel est négligeable à cette taille, donc il n'y a aucune raison de se contenter d'une approximation.
-
----
 
 ## 3. Correction de Bonferroni
 
@@ -101,13 +95,7 @@ Il existe une alternative moins conservatrice : le contrôle du **false discover
 
 On a choisi Bonferroni parce qu'on veut des conclusions solides : si on identifie un biais qui servira de base à une stratégie de trading, le coût d'un faux positif est asymétrique (on perdra de l'argent sur une stratégie qui n'a pas de vrai edge). Mieux vaut être conservateur.
 
-### Question d'entretien type
 
-**Q : Explique-moi le problème des tests multiples et comment tu l'as géré.**
-
-R : Quand on fait plusieurs tests statistiques sur les mêmes données, la probabilité d'obtenir au moins un faux positif par hasard augmente rapidement avec le nombre de tests. Par exemple, 10 tests indépendants au seuil 5% donnent environ 40% de chances d'au moins un faux positif. Dans mon projet, je teste 10 bins de calibration, donc je dois corriger. J'ai utilisé la correction de Bonferroni qui divise le seuil par le nombre de tests : au lieu de $\alpha = 0.05$, j'utilise $\alpha/10 = 0.005$. C'est conservateur, mais justifié dans ce contexte parce qu'un faux positif ici pourrait conduire à construire une stratégie de trading sur un biais qui n'existe pas vraiment. Une alternative moins stricte aurait été Benjamini-Hochberg pour le FDR, mais le trade-off puissance/sécurité ne me convenait pas.
-
----
 
 ## 4. Intervalles de confiance bootstrap
 
@@ -129,13 +117,7 @@ Pour une statistique $\hat{\theta}$ estimée sur un échantillon de taille $N$ :
 
 Notebook 02. Pour chaque bin de calibration, on calcule un IC à 95% sur le taux YES réalisé via 10 000 rééchantillonnages. Ça permet de tracer les barres d'erreur verticales sur la courbe de calibration (Figure 1 du paper).
 
-### Question d'entretien type
 
-**Q : Pourquoi bootstrap plutôt qu'un intervalle de confiance paramétrique ?**
-
-R : Un IC paramétrique (par exemple Wald, $\hat{p} \pm 1.96 \sqrt{\hat{p}(1-\hat{p})/N}$) suppose que la distribution d'échantillonnage de $\hat{p}$ est approximativement normale. C'est bon quand $N$ est grand et que $p$ est loin de 0 et 1. Quand on a des bins avec $p$ proche des bornes ou des tailles modérées, l'approximation normale peut donner des IC asymétriques artificiellement ou qui débordent de [0, 1]. Bootstrap n'assume rien sur la forme de la distribution : il l'estime empiriquement en rééchantillonnant. Le coût est négligeable (quelques secondes par bin) et on obtient des IC plus fiables dans les zones délicates.
-
----
 
 ## 5. Régression logistique
 
@@ -164,13 +146,6 @@ Notebook 03 (H2). On teste si la dérive tardive $\delta = p^{24} - p^{48}$ port
 
 On trouve $\hat{\beta}_2 = +5.25$ ($p = 1.8 \times 10^{-44}$). La dérive est très significative.
 
-### Question d'entretien type
-
-**Q : Pourquoi une régression logistique et pas une régression linéaire sur le taux YES ?**
-
-R : L'outcome est binaire : 0 ou 1. Une régression linéaire peut prédire des valeurs hors de [0, 1], ce qui est non interprétable comme probabilité. La régression logistique passe par le logit, qui garantit des prédictions dans [0, 1]. Mathématiquement, elle modélise $\log(p/(1-p))$ comme une fonction linéaire, ce qui est plus naturel pour les probabilités. En pratique, elle s'estime par maximum de vraisemblance et ses coefficients ont une interprétation directe en termes d'odds ratios (voir section suivante).
-
----
 
 ## 6. Odds ratio
 
@@ -194,13 +169,6 @@ Notebook 03. On a $\hat{\beta}_2 = +5.25$ pour la dérive, donc OR $= e^{5.25} =
 
 Interprétation : une dérive positive de 10 cents entre T-48h et T-24h multiplie par 1.69 les odds que le marché se résolve en YES. Autrement dit, +69% sur les odds.
 
-### Question d'entretien type
-
-**Q : Comment interpréter un coefficient de régression logistique ?**
-
-R : Dans une logistique $\text{logit}(p) = \beta_0 + \beta_1 X$, le coefficient $\beta_1$ représente le changement du log-odds quand $X$ augmente d'une unité. En exponentiant, $e^{\beta_1}$ devient l'odds ratio : le facteur multiplicatif des odds quand $X$ augmente d'une unité. Attention au "une unité" : si $X$ est une dérive exprimée entre 0 et 1, une unité c'est +1.00, ce qui n'arrivera jamais. Pour des interprétations utiles, je calcule l'OR pour un changement réaliste, par exemple +0.10, via $e^{0.10 \beta_1}$.
-
----
 
 ## 7. Test de Wald et test du rapport de vraisemblance
 
@@ -232,13 +200,7 @@ Notebook 03. Pour tester si la dérive apporte de l'information :
 
 Les deux rejettent massivement $H_0$.
 
-### Question d'entretien type
 
-**Q : Tu utilises à la fois Wald et LR. Pourquoi pas juste l'un ou l'autre ?**
-
-R : Ce sont deux tests équivalents asymptotiquement, mais avec des comportements différents en pratique. Wald est plus rapide (une seule régression à estimer) et donne un test par coefficient individuellement. LR nécessite deux régressions (complète et restreinte) mais est plus robuste dans les petits échantillons et invariant par reparamétrisation. J'utilise Wald pour évaluer chaque coefficient séparément et LR pour tester l'amélioration globale du modèle. Les deux s'accordent ici (toutes les p-values sont ridiculement petites), ce qui renforce la conclusion. Si elles divergeaient, je me fierais plutôt à LR.
-
----
 
 ## 8. Pseudo-R² de McFadden
 
@@ -256,13 +218,7 @@ où $\ell_{\text{null}}$ est la log-vraisemblance du modèle avec seulement une 
 
 Notebook 03. Le modèle baseline (prix à T-48h seul) a $R^2_{\text{McF}} = 0.314$. Le modèle complet (ajoutant la dérive) a $R^2_{\text{McF}} = 0.337$. Gain = 2.2 pp, ce qui est substantiel en pratique.
 
-### Question d'entretien type
 
-**Q : Qu'est-ce qu'un bon pseudo-R² en régression logistique ?**
-
-R : L'échelle d'interprétation est très différente du R² linéaire classique. McFadden entre 0.2 et 0.4 est considéré comme un excellent ajustement. Dans mon projet, 0.314 pour le baseline et 0.337 pour le modèle complet sont des valeurs fortes. Le gain de 2.2 points entre les deux n'est pas anecdotique : c'est l'équivalent d'une amélioration substantielle. D'autres pseudo-R² existent (Nagelkerke, Cox-Snell) avec des échelles différentes, donc il faut toujours préciser lequel on rapporte.
-
----
 
 ## 9. Paradoxe de Simpson
 
@@ -282,13 +238,7 @@ Notebooks 02 et 03. Pour H1 : pooled montre 4 bins significatifs (0.2-0.6), stra
 
 La leçon : **toujours stratifier**.
 
-### Question d'entretien type
 
-**Q : Tu as trouvé un effet pooled très significatif. Comment tu t'assures que ce n'est pas un artefact ?**
-
-R : Je stratifie systématiquement par les variables potentiellement confondantes. Dans mon projet, la catégorie (crypto, sports, politics, other) était un candidat évident : les différentes catégories ont des taux YES différents, des volumes différents, des patterns temporels différents. Quand je refais les tests au sein de chaque catégorie, avec Bonferroni appliqué à l'intérieur de chaque, le pattern global de 4 bins miscalibrés se réduit à 2 bins dans 2 catégories différentes. C'est une manifestation claire du paradoxe de Simpson : en moyennant sur des catégories hétérogènes, on produit un pattern qui n'existe dans aucune des catégories individuellement. Sans cette stratification, j'aurais reporté une conclusion plus large mais moins vraie.
-
----
 
 ## 10. Ratio de Sharpe et Max drawdown
 
@@ -313,32 +263,5 @@ où $r$ est le rendement par période, $r_f$ le taux sans risque, $\sigma$ l'éc
 $$\text{MDD} = \max_{t_2 \geq t_1} \frac{\text{Equity}(t_1) - \text{Equity}(t_2)}{\text{Equity}(t_1)}$$
 
 **Dans le projet** : MDD de 4.1% du capital déployé. Très modéré grâce à la diversification temporelle (187 trades sur 10 mois).
-
-### Question d'entretien type
-
-**Q : Un Sharpe de 2.83, c'est trop beau pour être vrai ?**
-
-R : C'est effectivement dans la zone "très bon mais pas impossible". Un Sharpe > 3 m'aurait rendu méfiant. Trois choses à vérifier : est-ce que le backtest est rigoureux (point-in-time data, pas de look-ahead) ; est-ce que l'effet survit en out-of-sample (oui, mon test 2026 fait +23% contre +14% sur train) ; est-ce que les coûts de transaction sont réalistes (j'ai pris 2% de frais round-trip et 0.5% de slippage, ce qui est en ligne avec Polymarket). Le Sharpe de 2.83 est obtenu à stake 1 USDC, donc à l'échelle où le slippage est négligeable. À des tailles réalistes de 50-100 USDC par trade sur des marchés crypto illiquides, le Sharpe tomberait probablement à 1.5-2.0 à cause du slippage accru. C'est une limite honnête que je documente dans le papier.
-
----
-
-## Checklist pour entretien
-
-Avant un entretien quant où tu comptes mentionner ce projet, relire ce document et vérifier que tu peux :
-
-- [ ] Expliquer le Brier score et sa décomposition sans regarder
-- [ ] Justifier le choix d'un test exact plutôt qu'un chi-deux
-- [ ] Expliquer pourquoi on corrige pour les tests multiples, et quelle correction on a utilisée
-- [ ] Défendre le choix de bootstrap pour les CI
-- [ ] Passer d'un coefficient de logistique à un odds ratio interprétable
-- [ ] Expliquer la différence Wald vs likelihood-ratio
-- [ ] Interpréter un pseudo-R² sans tomber dans le piège de le comparer au R² linéaire
-- [ ] Expliquer le paradoxe de Simpson avec un exemple concret (le nôtre !)
-- [ ] Calculer un Sharpe ratio de tête, expliquer pourquoi on annualise
-- [ ] Défendre l'interprétation du Sharpe et ses pièges (look-ahead, survivorship, scaling)
-
-Si tu bloques sur l'un de ces points, c'est là qu'il faut focaliser ta révision avant l'entretien.
-
----
 
 *Document préparé dans le cadre du projet Polymarket Calibration Study, avril 2026.*
