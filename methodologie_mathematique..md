@@ -43,12 +43,6 @@ Résultats : Brier = 0.1414, Reliability = 0.0015 (très bon), Resolution = 0.09
 
 La Reliability petite nous dit que Polymarket est globalement bien calibré. La Resolution importante nous dit que les prix sont **informatifs** : ils discriminent bien.
 
-### Question d'entretien type
-
-**Q : Pourquoi le Brier score plutôt que le log-loss pour mesurer la qualité d'une prévision probabiliste ?**
-
-R : Les deux sont des scoring rules propres (proper), donc ils sont tous deux valides pour évaluer une prévision probabiliste honnête. Le Brier a deux avantages pratiques : il est borné entre 0 et 1, ce qui le rend facile à interpréter ; et il se décompose exactement en Reliability/Resolution/Uncertainty, ce qui permet d'analyser séparément la calibration et la discrimination. Le log-loss est plus pénalisant pour les prévisions très confiantes qui s'avèrent fausses (il explose quand $p \to 0$ et $y = 1$), ce qui peut être souhaitable ou non selon le contexte. Pour un marché de prédiction où on veut séparer "bien calibré" de "bien discriminant", le Brier avec décomposition de Murphy est le choix naturel.
-
 ---
 
 ## 2. Test binomial exact
